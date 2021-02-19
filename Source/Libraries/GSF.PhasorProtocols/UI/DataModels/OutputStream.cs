@@ -43,9 +43,33 @@ using GSF.TimeSeries.UI;
 using GSF.TimeSeries.UI.DataModels;
 using Measurement = GSF.TimeSeries.UI.DataModels.Measurement;
 
+// ReSharper disable ConstantConditionalAccessQualifier
 // ReSharper disable AccessToDisposedClosure
 namespace GSF.PhasorProtocols.UI.DataModels
 {
+    /// <summary>
+    /// Supported Synchrophasor Output Protocols.
+    /// </summary>
+    public enum OutputProtocol
+    {
+        /// <summary>
+        /// IEEE C37.118-2011 Output.
+        /// </summary>
+        IEEE_C37_118_2011 = 3,
+        /// <summary>
+        /// IEEE C37.118-2005 Output.
+        /// </summary>
+        IEEE_C37_118_2005 = 0,
+        /// <summary>
+        /// BPA PDCstream Output.
+        /// </summary>
+        BPA_PDCSTREAM = 1,
+        /// <summary>
+        /// IEC 61850-90-5 Output.
+        /// </summary>
+        IEC_61850_90_5 = 2
+    }
+
     /// <summary>
     /// Represents a record of <see cref="OutputStream"/> as defined in the database.
     /// </summary>
@@ -57,7 +81,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
         private int m_ID;
         private string m_acronym;
         private string m_name;
-        private int m_type = 1;
+        private OutputProtocol m_type = OutputProtocol.IEEE_C37_118_2005;
         private string m_connectionString;
         private int m_idCode;
         private string m_commandChannel;
@@ -82,14 +106,8 @@ namespace GSF.PhasorProtocols.UI.DataModels
         private int m_voltageScalingValue;
         private int m_analogScalingValue;
         private int m_digitalMaskValue;
-        private string m_nodeName;
-        private string m_typeName;
         private bool m_performTimestampReasonabilityCheck;
         private bool m_roundToNearestTimestamp;
-        private DateTime m_createdOn;
-        private string m_createdBy;
-        private DateTime m_updatedOn;
-        private string m_updatedBy;
         private string m_mirroringSourceDevice = "";
 
         // ReSharper disable once MemberInitializerValueIgnored
@@ -118,10 +136,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
         /// </summary>
         public Guid NodeID
         {
-            get
-            {
-                return m_nodeID;
-            }
+            get => m_nodeID;
             set
             {
                 m_nodeID = value;
@@ -135,10 +150,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
         // Field is populated by database via auto-increment and has no screen interaction, so no validation attributes are applied.
         public int ID
         {
-            get
-            {
-                return m_ID;
-            }
+            get => m_ID;
             set
             {
                 m_ID = value;
@@ -154,10 +166,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
         [AcronymValidation]
         public string Acronym
         {
-            get
-            {
-                return m_acronym;
-            }
+            get => m_acronym;
             set
             {
                 m_acronym = value;
@@ -171,10 +180,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
         [StringLength(200, ErrorMessage = "Output stream name cannot exceed 200 characters.")]
         public string Name
         {
-            get
-            {
-                return m_name;
-            }
+            get => m_name;
             set
             {
                 m_name = value;
@@ -183,22 +189,29 @@ namespace GSF.PhasorProtocols.UI.DataModels
         }
 
         /// <summary>
-        /// Gets or sets <see cref="OutputStream"/>'s Type.
+        /// Gets or sets <see cref="OutputStream"/>'s output protocol type.
         /// </summary>
         [Required(ErrorMessage = "Output stream type is a required, please provide a value.")]
-        public int Type
+        public OutputProtocol Type
         {
-            get
-            {
-                return m_type;
-            }
+            get => m_type;
             set
             {
                 m_type = value;
-                m_typeName = (m_type == 1) ? "IEEE C37.118" : (m_type == 2) ? "BPA" : "IEC 61850-90-5";
                 OnPropertyChanged("Type");
+                OnPropertyChanged("TypeAsInt");
                 OnPropertyChanged("TypeName");
             }
+        }
+
+        /// <summary>
+        /// Gets or sets <see cref="OutputStream"/>'s output protocol type as an integer.
+        /// </summary>
+        [Required(ErrorMessage = "Output stream type is a required, please provide a value.")]
+        public int TypeAsInt
+        {
+            get => (int)Type;
+            set => Type = (OutputProtocol)value;
         }
 
         /// <summary>
@@ -206,16 +219,12 @@ namespace GSF.PhasorProtocols.UI.DataModels
         /// </summary>
         public string ConnectionString
         {
-            get
-            {
-                return m_connectionString;
-            }
+            get => m_connectionString;
             set
             {
                 Dictionary<string, string> settings = value.ParseKeyValuePairs();
-                string setting;
 
-                if (settings.TryGetValue(nameof(RoundToNearestTimestamp), out setting))
+                if (settings.TryGetValue(nameof(RoundToNearestTimestamp), out string setting))
                 {
                     RoundToNearestTimestamp = setting.ParseBoolean();
                     settings.Remove(nameof(RoundToNearestTimestamp));
@@ -236,10 +245,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
         [Required(ErrorMessage = "Output stream IDCode is a required field, please provide a value.")]
         public int IDCode
         {
-            get
-            {
-                return m_idCode;
-            }
+            get => m_idCode;
             set
             {
                 m_idCode = value;
@@ -252,10 +258,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
         /// </summary>
         public string CommandChannel
         {
-            get
-            {
-                return m_commandChannel;
-            }
+            get => m_commandChannel;
             set
             {
                 m_commandChannel = value;
@@ -269,10 +272,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
         /// </summary>
         public string DataChannel
         {
-            get
-            {
-                return m_dataChannel;
-            }
+            get => m_dataChannel;
             set
             {
                 m_dataChannel = value;
@@ -288,10 +288,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
         [DefaultValue(false)]
         public bool AutoPublishConfigFrame
         {
-            get
-            {
-                return m_autoPublishConfigFrame;
-            }
+            get => m_autoPublishConfigFrame;
             set
             {
                 m_autoPublishConfigFrame = value;
@@ -307,10 +304,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
         [DefaultValue(true)]
         public bool AutoStartDataChannel
         {
-            get
-            {
-                return m_autoStartDataChannel;
-            }
+            get => m_autoStartDataChannel;
             set
             {
                 m_autoStartDataChannel = value;
@@ -325,10 +319,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
         [DefaultValue(60)]
         public int NominalFrequency
         {
-            get
-            {
-                return m_nominalFrequency;
-            }
+            get => m_nominalFrequency;
             set
             {
                 m_nominalFrequency = value;
@@ -343,10 +334,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
         [DefaultValue(30)]
         public int FramesPerSecond
         {
-            get
-            {
-                return m_framesPerSecond;
-            }
+            get => m_framesPerSecond;
             set
             {
                 m_framesPerSecond = value;
@@ -361,10 +349,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
         [DefaultValue(3.0)]
         public double LagTime
         {
-            get
-            {
-                return m_lagTime;
-            }
+            get => m_lagTime;
             set
             {
                 m_lagTime = value;
@@ -379,10 +364,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
         [DefaultValue(1.0)]
         public double LeadTime
         {
-            get
-            {
-                return m_leadTime;
-            }
+            get => m_leadTime;
             set
             {
                 m_leadTime = value;
@@ -393,14 +375,11 @@ namespace GSF.PhasorProtocols.UI.DataModels
         /// <summary>
         /// Gets or sets <see cref="OutputStream"/>'s UseLocalClockAsRealTime flag.
         /// </summary>
-        [Required(ErrorMessage = "Output stream use local clock as realtime is a required field, please provide a value.")]
+        [Required(ErrorMessage = "Output stream use local clock as real-time is a required field, please provide a value.")]
         [DefaultValue(false)]
         public bool UseLocalClockAsRealTime
         {
-            get
-            {
-                return m_useLocalClockAsRealTime;
-            }
+            get => m_useLocalClockAsRealTime;
             set
             {
                 m_useLocalClockAsRealTime = value;
@@ -415,10 +394,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
         [DefaultValue(true)]
         public bool AllowSortsByArrival
         {
-            get
-            {
-                return m_allowSortsByArrival;
-            }
+            get => m_allowSortsByArrival;
             set
             {
                 m_allowSortsByArrival = value;
@@ -433,10 +409,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
         [DefaultValue(0)]
         public int LoadOrder
         {
-            get
-            {
-                return m_loadOrder;
-            }
+            get => m_loadOrder;
             set
             {
                 m_loadOrder = value;
@@ -451,10 +424,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
         [DefaultValue(false)]
         public bool Enabled
         {
-            get
-            {
-                return m_enabled;
-            }
+            get => m_enabled;
             set
             {
                 m_enabled = value;
@@ -469,10 +439,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
         [DefaultValue(false)]
         public bool IgnoreBadTimeStamps
         {
-            get
-            {
-                return m_ignoreBadTimeStamps;
-            }
+            get => m_ignoreBadTimeStamps;
             set
             {
                 m_ignoreBadTimeStamps = value;
@@ -487,10 +454,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
         [DefaultValue(330000)]
         public int TimeResolution
         {
-            get
-            {
-                return m_timeResolution;
-            }
+            get => m_timeResolution;
             set
             {
                 m_timeResolution = value;
@@ -505,10 +469,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
         [DefaultValue(true)]
         public bool AllowPreemptivePublishing
         {
-            get
-            {
-                return m_allowPreemptivePublishing;
-            }
+            get => m_allowPreemptivePublishing;
             set
             {
                 m_allowPreemptivePublishing = value;
@@ -523,10 +484,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
         [DefaultValue("LastReceived")]
         public string DownSamplingMethod
         {
-            get
-            {
-                return m_downsamplingMethod;
-            }
+            get => m_downsamplingMethod;
             set
             {
                 m_downsamplingMethod = value;
@@ -541,10 +499,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
         [DefaultValue("FloatingPoint")]
         public string DataFormat
         {
-            get
-            {
-                return m_dataFormat;
-            }
+            get => m_dataFormat;
             set
             {
                 m_dataFormat = value;
@@ -559,10 +514,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
         [DefaultValue("Polar")]
         public string CoordinateFormat
         {
-            get
-            {
-                return m_coordinateFormat;
-            }
+            get => m_coordinateFormat;
             set
             {
                 m_coordinateFormat = value;
@@ -577,10 +529,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
         [DefaultValue(2423)]
         public int CurrentScalingValue
         {
-            get
-            {
-                return m_currentScalingValue;
-            }
+            get => m_currentScalingValue;
             set
             {
                 m_currentScalingValue = value;
@@ -595,10 +544,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
         [DefaultValue(2725785)]
         public int VoltageScalingValue
         {
-            get
-            {
-                return m_voltageScalingValue;
-            }
+            get => m_voltageScalingValue;
             set
             {
                 m_voltageScalingValue = value;
@@ -613,10 +559,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
         [DefaultValue(1373291)]
         public int AnalogScalingValue
         {
-            get
-            {
-                return m_analogScalingValue;
-            }
+            get => m_analogScalingValue;
             set
             {
                 m_analogScalingValue = value;
@@ -631,10 +574,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
         [DefaultValue(-65536)]
         public int DigitalMaskValue
         {
-            get
-            {
-                return m_digitalMaskValue;
-            }
+            get => m_digitalMaskValue;
             set
             {
                 m_digitalMaskValue = value;
@@ -645,24 +585,12 @@ namespace GSF.PhasorProtocols.UI.DataModels
         /// <summary>
         /// Gets <see cref="OutputStream"/>'s Node name.
         /// </summary>        
-        public string NodeName
-        {
-            get
-            {
-                return m_nodeName;
-            }
-        }
+        public string NodeName { get; private set; }
 
         /// <summary>
         /// Gets <see cref="OutputStream"/>'s TypeName.
         /// </summary>
-        public string TypeName
-        {
-            get
-            {
-                return m_typeName;
-            }
-        }
+        public string OutputProtocolName => OutputProtocolNames[Type];
 
         /// <summary>
         /// Gets or sets <see cref="OutputStream"/>'s PerformTimestampReasonabilityCheck flag.
@@ -671,10 +599,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
         [DefaultValue(true)]
         public bool PerformTimestampReasonabilityCheck
         {
-            get
-            {
-                return m_performTimestampReasonabilityCheck;
-            }
+            get => m_performTimestampReasonabilityCheck;
             set
             {
                 m_performTimestampReasonabilityCheck = value;
@@ -689,10 +614,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
         [DefaultValue(false)]
         public bool RoundToNearestTimestamp
         {
-            get
-            {
-                return m_roundToNearestTimestamp;
-            }
+            get => m_roundToNearestTimestamp;
             set
             {
                 m_roundToNearestTimestamp = value;
@@ -704,84 +626,41 @@ namespace GSF.PhasorProtocols.UI.DataModels
         /// Gets or sets <see cref="OutputStream"/> CreatedOn.
         /// </summary>
         // Field is populated by database via trigger and has no screen interaction, so no validation attributes are applied
-        public DateTime CreatedOn
-        {
-            get
-            {
-                return m_createdOn;
-            }
-            set
-            {
-                m_createdOn = value;
-            }
-        }
+        public DateTime CreatedOn { get; set; }
 
         /// <summary>
         /// Gets or sets <see cref="OutputStream"/> CreatedBy.
         /// </summary>
         // Field is populated by database via trigger and has no screen interaction, so no validation attributes are applied
-        public string CreatedBy
-        {
-            get
-            {
-                return m_createdBy;
-            }
-            set
-            {
-                m_createdBy = value;
-            }
-        }
+        public string CreatedBy { get; set; }
 
         /// <summary>
         /// Gets or sets <see cref="OutputStream"/> UpdatedOn.
         /// </summary>
         // Field is populated by database via trigger and has no screen interaction, so no validation attributes are applied
-        public DateTime UpdatedOn
-        {
-            get
-            {
-                return m_updatedOn;
-            }
-            set
-            {
-                m_updatedOn = value;
-            }
-        }
+        public DateTime UpdatedOn { get; set; }
 
         /// <summary>
         /// Gets or sets <see cref="OutputStream"/> UpdatedBy.
         /// </summary>
         // Field is populated by database via trigger and has no screen interaction, so no validation attributes are applied
-        public string UpdatedBy
-        {
-            get
-            {
-                return m_updatedBy;
-            }
-            set
-            {
-                m_updatedBy = value;
-            }
-        }
+        public string UpdatedBy { get; set; }
 
         /// <summary>
         /// Gets or sets id of the device used for mirroring output stream.
         /// </summary>  
         public string MirroringSourceDevice
         {
-            get
-            {
-                return m_mirroringSourceDevice;
-            }
+            get => m_mirroringSourceDevice;
             set
             {
-                if (m_mirroringSourceDevice != value)
+                if (m_mirroringSourceDevice == value)
+                    return;
+
+                if (MessageBox.Show("WARNING: This will replace all existing devices and measurements associated with this output stream. Do you want to continue?", "IEEE C37.118 Mirroring", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
                 {
-                    if (MessageBox.Show("WARNING: This will replace all existing devices and measurements associated with this output stream. Do you want to continue?", "IEEE C37.118 Mirroring", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
-                    {
-                        m_mirroringSourceDevice = value;
-                        OnPropertyChanged("MirroringSourceDevice");
-                    }
+                    m_mirroringSourceDevice = value;
+                    OnPropertyChanged("MirroringSourceDevice");
                 }
 
             }
@@ -804,6 +683,22 @@ namespace GSF.PhasorProtocols.UI.DataModels
 
         #region [ Static ]
 
+        // Static Properties
+
+        /// <summary>
+        /// Gets an output stream type lookup list, maps <see cref="OutputStream"/> enum value to its display name.
+        /// </summary>
+        public static ReadOnlyDictionary<OutputProtocol, string> OutputProtocolNames { get; } = new ReadOnlyDictionary<OutputProtocol, string>
+        (
+            new Dictionary<OutputProtocol, string>
+            {
+                { OutputProtocol.IEEE_C37_118_2011, "IEEE C37.118-2011" },
+                { OutputProtocol.IEEE_C37_118_2005, "IEEE C37.118-2005" },
+                { OutputProtocol.BPA_PDCSTREAM, "BPA PDCstream" },
+                { OutputProtocol.IEC_61850_90_5, "IEC 61850-90-5" }
+            }
+        );
+
         // Static Methods
 
         /// <summary>
@@ -817,6 +712,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
         public static IList<int> LoadKeys(AdoDataConnection database, bool enabledOnly, string sortMember, string sortDirection)
         {
             bool createdConnection = false;
+
             try
             {
                 createdConnection = CreateConnection(ref database);
@@ -850,7 +746,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
             }
             finally
             {
-                if (createdConnection && (object)database != null)
+                if (createdConnection && database != null)
                     database.Dispose();
             }
         }
@@ -871,7 +767,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
                 ObservableCollection<OutputStream> outputStreamList = new ObservableCollection<OutputStream>();
                 DataTable outputStreamTable;
 
-                if ((object)keys != null && keys.Count > 0)
+                if (keys != null && keys.Count > 0)
                 {
                     string commaSeparatedKeys = keys.Select(key => "" + key.ToString() + "").Aggregate((str1, str2) => str1 + "," + str2);
                     string query = $"SELECT * FROM OutputStreamDetail WHERE ID IN ({commaSeparatedKeys})";
@@ -880,7 +776,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
                     outputStreamList = new ObservableCollection<OutputStream>(
                         from item in outputStreamTable.AsEnumerable()
                         let id = item.ConvertField<int>("ID")
-                        let type = item.ConvertField<int>("Type") + 1
+                        let type = (OutputProtocol)item.ConvertField<int>("Type")
                         orderby keys.IndexOf(id)
                         select new OutputStream
                         {
@@ -903,8 +799,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
                             AllowSortsByArrival = Convert.ToBoolean(item.Field<object>("AllowSortsByArrival")),
                             LoadOrder = item.ConvertField<int>("LoadOrder"),
                             Enabled = Convert.ToBoolean(item.Field<object>("Enabled")),
-                            m_nodeName = item.Field<string>("NodeName"),
-                            m_typeName = (type == 1) ? "IEEE C37.118" : (type == 2) ? "BPA" : "IEC 61850-90-5",
+                            NodeName = item.Field<string>("NodeName"),
                             IgnoreBadTimeStamps = Convert.ToBoolean(item.Field<object>("IgnoreBadTimeStamps")),
                             TimeResolution = item.ConvertField<int>("TimeResolution"),
                             AllowPreemptivePublishing = Convert.ToBoolean(item.Field<object>("AllowPreemptivePublishing")),
@@ -927,7 +822,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
             }
             finally
             {
-                if (createdConnection && (object)database != null)
+                if (createdConnection && database != null)
                     database.Dispose();
             }
         }
@@ -952,15 +847,12 @@ namespace GSF.PhasorProtocols.UI.DataModels
                 // Get OriginalSource value for the above OutputStreamDevice from the input Device table.
                 Device device = Device.GetDevice(database, " WHERE Acronym LIKE '%" + outputStreamDevice.Acronym + "'");
 
-                if (device == null)
-                    return "";
-
-                return device.OriginalSource;
+                return device is null ? "" : device.OriginalSource;
             }
             finally
             {
-                if (createdConnection && (object)database != null)
-                    database.Dispose();
+                if (createdConnection)
+                    database?.Dispose();
             }
         }
 
@@ -1001,7 +893,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
                         "performTimeReasonabilityCheck", "updatedBy", "updatedOn", "createdBy", "createdOn");
 
                     database.Connection.ExecuteNonQuery(query,
-                        database.CurrentNodeID(), outputStream.Acronym.Replace(" ", "").ToUpper(), outputStream.Name.ToNotNull(), outputStream.Type - 1, connectionString.ToNotNull(),
+                        database.CurrentNodeID(), outputStream.Acronym.Replace(" ", "").ToUpper(), outputStream.Name.ToNotNull(), (int)outputStream.Type, connectionString.ToNotNull(),
                         outputStream.IDCode, outputStream.CommandChannel.ToNotNull(), outputStream.DataChannel.ToNotNull(), database.Bool(outputStream.AutoPublishConfigFrame), database.Bool(outputStream.AutoStartDataChannel),
                         outputStream.NominalFrequency, outputStream.FramesPerSecond, outputStream.LagTime, outputStream.LeadTime, database.Bool(outputStream.UseLocalClockAsRealTime), database.Bool(outputStream.AllowSortsByArrival),
                         outputStream.LoadOrder, database.Bool(outputStream.Enabled), database.Bool(outputStream.IgnoreBadTimeStamps), outputStream.TimeResolution, database.Bool(outputStream.AllowPreemptivePublishing),
@@ -1025,7 +917,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
                         "analogScalingValue", "digitalMaskValue", "performTimeReasonabilityCheck", "updatedBy", "updatedOn", "id");
 
                     database.Connection.ExecuteNonQuery(query, DefaultTimeout,
-                        database.Guid(outputStream.NodeID), outputStream.Acronym.Replace(" ", "").ToUpper(), outputStream.Name.ToNotNull(), outputStream.Type - 1, connectionString.ToNotNull(),
+                        database.Guid(outputStream.NodeID), outputStream.Acronym.Replace(" ", "").ToUpper(), outputStream.Name.ToNotNull(), (int)outputStream.Type, connectionString.ToNotNull(),
                         outputStream.IDCode, outputStream.CommandChannel.ToNotNull(), outputStream.DataChannel.ToNotNull(), database.Bool(outputStream.AutoPublishConfigFrame), database.Bool(outputStream.AutoStartDataChannel),
                         outputStream.NominalFrequency, outputStream.FramesPerSecond, outputStream.LagTime, outputStream.LeadTime, database.Bool(outputStream.UseLocalClockAsRealTime),
                         database.Bool(outputStream.AllowSortsByArrival), outputStream.LoadOrder, database.Bool(outputStream.Enabled), database.Bool(outputStream.IgnoreBadTimeStamps), outputStream.TimeResolution,
@@ -1033,7 +925,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
                         outputStream.CurrentScalingValue, outputStream.VoltageScalingValue, outputStream.AnalogScalingValue, outputStream.DigitalMaskValue, database.Bool(outputStream.PerformTimestampReasonabilityCheck),
                         CommonFunctions.CurrentUser, database.UtcNow, outputStream.ID);
 
-                    if (oldOutputStream != null && oldOutputStream.Acronym != outputStream.Acronym.Replace(" ", "").ToUpper())
+                    if (!(oldOutputStream is null) && oldOutputStream.Acronym != outputStream.Acronym.Replace(" ", "").ToUpper())
                     {
                         ObservableCollection<Measurement> measurementList = Measurement.GetOutputStatisticMeasurements(database, oldOutputStream.Acronym);
 
@@ -1047,7 +939,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
 
                         SignalType qualityType = SignalType.Load(database).FirstOrDefault(type => type.Acronym == "QUAL");
 
-                        if ((object)qualityType != null)
+                        if (!(qualityType is null))
                         {
                             IList<int> keys = database.Connection.RetrieveData(database.AdapterType, $"SELECT ID FROM OutputStreamMeasurement WHERE AdapterID = {outputStream.ID}")
                                 .Select().Select(row => row.ConvertField<int>("ID")).ToList();
@@ -1091,8 +983,8 @@ namespace GSF.PhasorProtocols.UI.DataModels
             }
             finally
             {
-                if (createdConnection && (object)database != null)
-                    database.Dispose();
+                if (createdConnection)
+                    database?.Dispose();
             }
         }
 
@@ -1121,8 +1013,8 @@ namespace GSF.PhasorProtocols.UI.DataModels
             }
             finally
             {
-                if (createdConnection && (object)database != null)
-                    database.Dispose();
+                if (createdConnection)
+                    database?.Dispose();
             }
         }
 
@@ -1155,8 +1047,8 @@ namespace GSF.PhasorProtocols.UI.DataModels
             }
             finally
             {
-                if (createdConnection && (object)database != null)
-                    database.Dispose();
+                if (createdConnection)
+                    database?.Dispose();
             }
         }
 
@@ -1179,7 +1071,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
                     return null;
 
                 DataRow row = outputStreamTable.Rows[0];
-                int type = Convert.ToInt32(row.Field<object>("Type"));
+                OutputProtocol type = (OutputProtocol)Convert.ToInt32(row.Field<object>("Type"));
 
                 OutputStream outputStream = new OutputStream
                 {
@@ -1202,8 +1094,7 @@ namespace GSF.PhasorProtocols.UI.DataModels
                     AllowSortsByArrival = Convert.ToBoolean(row.Field<object>("AllowSortsByArrival")),
                     LoadOrder = Convert.ToInt32(row.Field<object>("LoadOrder")),
                     Enabled = Convert.ToBoolean(row.Field<object>("Enabled")),
-                    m_nodeName = row.Field<string>("NodeName"),
-                    m_typeName = (type == 1) ? "IEEE C37.118" : (type == 2) ? "BPA" : "IEC 61850-90-5",
+                    NodeName = row.Field<string>("NodeName"),
                     IgnoreBadTimeStamps = Convert.ToBoolean(row.Field<object>("IgnoreBadTimeStamps")),
                     TimeResolution = Convert.ToInt32(row.Field<object>("TimeResolution")),
                     AllowPreemptivePublishing = Convert.ToBoolean(row.Field<object>("AllowPreemptivePublishing")),
@@ -1222,8 +1113,8 @@ namespace GSF.PhasorProtocols.UI.DataModels
             }
             finally
             {
-                if (createdConnection && (object)database != null)
-                    database.Dispose();
+                if (createdConnection)
+                    database?.Dispose();
             }
         }
 
