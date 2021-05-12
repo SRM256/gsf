@@ -375,10 +375,7 @@ namespace GSF.Communication
                 int count = 0;
 
                 foreach (ConcurrentQueue<TcpServerPayload> sendQueue in m_clientInfoLookup.Values.Select(clientInfo => clientInfo.SendQueue))
-                {
-                    statusBuilder.AppendFormat("           Queued payloads: {0} for client {1}", sendQueue.Count, ++count);
-                    statusBuilder.AppendLine();
-                }
+                    statusBuilder.AppendLine($"           Queued payloads: {sendQueue.Count} for client {++count}");
 
                 return statusBuilder.ToString();
             }
@@ -418,7 +415,7 @@ namespace GSF.Communication
 
             TransportProvider<Socket> tcpClient = clientInfo.Client;
 
-            if (tcpClient.ReceiveBuffer == null)
+            if (tcpClient.ReceiveBuffer is null)
                 throw new InvalidOperationException("No received data buffer has been defined to read.");
 
             int readIndex = ReadIndicies[clientID];
@@ -515,7 +512,7 @@ namespace GSF.Communication
             if (CurrentState != ServerState.NotRunning)
                 return;
 
-            // Initialize if unitialized.
+            // Initialize if uninitialized.
             if (!Initialized)
                 Initialize();
 
@@ -572,7 +569,7 @@ namespace GSF.Communication
 
             try
             {
-                if (client.Provider != null && client.Provider.Connected)
+                if (client.Provider?.Connected ?? false)
                     client.Provider.Disconnect(false);
 
                 OnClientDisconnected(clientID);
@@ -676,7 +673,7 @@ namespace GSF.Communication
                 if (Interlocked.CompareExchange(ref clientInfo.Sending, 1, 0) == 0)
                 {
                     if (sendQueue.TryDequeue(out TcpServerPayload dequeuedPayload))
-                        ThreadPool.QueueUserWorkItem(state => SendPayload((TcpServerPayload)state), dequeuedPayload);
+                        SendPayload(dequeuedPayload);
                     else
                         Interlocked.Exchange(ref clientInfo.Sending, 0);
                 }
@@ -760,8 +757,7 @@ namespace GSF.Communication
                 {
                     // For unrecoverable errors, we need to ensure the server
                     // will be restarted before we can throw the error.
-                    if (error != SocketError.ConnectionReset)
-                        ThreadPool.QueueUserWorkItem(state => ReStart());
+                    ThreadPool.QueueUserWorkItem(state => ReStart());
                 }
 
                 if (error != SocketError.Success)
@@ -794,8 +790,8 @@ namespace GSF.Communication
                         if (!timeoutToken.Cancel())
                             throw new SocketException((int)SocketError.TimedOut);
 
-                        if (authenticationStream.RemoteIdentity is WindowsIdentity)
-                            clientPrincipal = new WindowsPrincipal((WindowsIdentity)authenticationStream.RemoteIdentity);
+                        if (authenticationStream.RemoteIdentity is WindowsIdentity identity)
+                            clientPrincipal = new WindowsPrincipal(identity);
                     }
                     catch (InvalidCredentialException)
                     {
@@ -882,7 +878,7 @@ namespace GSF.Communication
                 string errorMessage = $"Unable to accept connection to client [{clientAddress}]: {ex.Message}";
                 OnClientConnectingException(new Exception(errorMessage, ex));
 
-                if (receiveArgs != null)
+                if (!(receiveArgs is null))
                     TerminateConnection(client, receiveArgs, false);
             }
         }
@@ -894,7 +890,6 @@ namespace GSF.Communication
         {
             TcpClientInfo clientInfo = null;
             TransportProvider<Socket> client = null;
-            //ManualResetEventSlim handle;
 
             try
             {
@@ -902,7 +897,6 @@ namespace GSF.Communication
                 client = clientInfo.Client;
                 SocketAsyncEventArgs args = clientInfo.SendArgs;
                 args.UserToken = payload;
-                //handle = payload.WaitHandle;
 
                 // Copy payload into send buffer.
                 int copyLength = Math.Min(payload.Length, client.SendBufferSize);
@@ -917,14 +911,14 @@ namespace GSF.Communication
 
                 // Send data over socket.
                 if (!client.Provider.SendAsync(args))
-                    ProcessSend(args);
+                    ThreadPool.QueueUserWorkItem(_ => ProcessSend(args));
             }
             catch (Exception ex)
             {
-                if (client != null)
+                if (!(client is null))
                     OnSendClientDataException(client.ID, ex);
 
-                if (clientInfo != null)
+                if (!(clientInfo is null))
                 {
                     // Assume process send was not able
                     // to continue the asynchronous loop.
@@ -970,21 +964,21 @@ namespace GSF.Communication
             catch (Exception ex)
             {
                 // Send operation failed to complete.
-                if (client != null)
+                if (!(client is null))
                     OnSendClientDataException(client.ID, ex);
             }
             finally
             {
-                if (payload != null)
+                if (!(payload is null))
                 {
                     try
                     {
                         if (payload.Length > 0)
                         {
                             // Still more to send for this payload.
-                            ThreadPool.QueueUserWorkItem(state => SendPayload((TcpServerPayload)state), payload);
+                            SendPayload(payload);
                         }
-                        else if (sendQueue != null)
+                        else if (!(sendQueue is null))
                         {
                             payload.WaitHandle = null;
                             payload.ClientInfo = null;
@@ -992,14 +986,14 @@ namespace GSF.Communication
                             // Begin sending next client payload.
                             if (sendQueue.TryDequeue(out payload))
                             {
-                                ThreadPool.QueueUserWorkItem(state => SendPayload((TcpServerPayload)state), payload);
+                                SendPayload(payload);
                             }
-                            else if (clientInfo != null)
+                            else
                             {
                                 lock (clientInfo.SendLock)
                                 {
                                     if (sendQueue.TryDequeue(out payload))
-                                        ThreadPool.QueueUserWorkItem(state => SendPayload((TcpServerPayload)state), payload);
+                                        SendPayload(payload);
                                     else
                                         Interlocked.Exchange(ref clientInfo.Sending, 0);
                                 }
@@ -1010,10 +1004,10 @@ namespace GSF.Communication
                     {
                         string errorMessage = $"Exception encountered while attempting to send next payload: {ex.Message}";
 
-                        if (client != null)
+                        if (!(client is null))
                             OnSendClientDataException(client.ID, new Exception(errorMessage, ex));
 
-                        if (clientInfo != null)
+                        if (!(clientInfo is null))
                             Interlocked.Exchange(ref clientInfo.Sending, 0);
                     }
                 }
